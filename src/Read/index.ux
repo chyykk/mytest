@@ -1,0 +1,238 @@
+<template>
+        <!-- template里只能有一个根节点 -->
+        <div class="demo-page">
+          <list onscrollbottom="{{renderMoreListItem()}}">
+            <block for="{{images}}">
+               <list-item type='booklist' class="listitemwrap">
+                  <image  src="{{$item.cartoonUrl}}"></image>
+               </list-item>
+            </block>
+            <block>
+              <list-item type='guide'>
+                  <div class="guide-wrap">
+                      <div class="read-btn-wrap" >
+                          <div class="read-menu" onclick='{{goCatelist()}}'>
+                            <image src='../Common/img/cate.png'></image>
+                            <text class="read-txt">目录</text>
+                          </div>
+                          <div class="read-next" onclick='{{nextPage()}}'>
+                              <image src='../Common/img/next.png'></image>
+                              <text class="read-txt">下一页</text>
+                          </div>
+                        </div>
+                        <div class="goindex" onclick="{{goIndex()}}">
+                          <text>首页</text>
+                        </div>
+                  </div>
+              </list-item>
+            </block>
+          </list>
+          <!-- <div class="content-wrap" for="{{images}}">
+            <image src="{{$item.cartoonUrl}}"></image>
+          </div>
+          <div class="read-btn-wrap" >
+            <div class="read-menu" onclick='{{goCatelist()}}'>
+              <image src='../Common/img/cate.png'></image>
+              <text class="read-txt">目录</text>
+            </div>
+            <div class="read-next" onclick='{{nextPage()}}'>
+                <image src='../Common/img/next.png'></image>
+                <text class="read-txt">下一页</text>
+            </div>
+          </div> -->
+        </div>
+      </template>
+      
+      <style>
+        .content-wrap{
+          flex-direction: column;
+        }
+        .content-wrap image{
+          width: 750px;
+        }
+        .demo-page {
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+        }
+        .listitemwrap image{
+          width: 750px
+        }
+        .title {
+          font-size: 40px;
+          text-align: center;
+        }
+        .guide-wrap{
+          flex-direction: column;
+        }
+        .read-btn-wrap{
+          flex-direction: row;
+          border: 1px solid #dddddd;
+          height: 100px;
+          align-self:center;
+        }
+        .read-btn-wrap image{
+          margin:30px 0 0 120px ;
+          width: 40px;
+          height: 40px;
+        }
+        .read-menu{
+          flex-direction: row;
+          width: 373px;
+          border-style:solid;
+          border-right-width: 1px ;
+          border-right-color: #dddddd;
+          text-align: center;
+        }
+        .read-next{
+          flex-direction: row;
+          width: 374px;
+          text-align: center;
+        }
+        .read-txt{
+          width: 100px;
+        }
+        .goindex{
+          height: 100px;
+          border-style:solid;
+          border-bottom-width: 1px ;
+          border-bottom-color: #dddddd;
+          flex-direction:column;
+          justify-content: center;
+          align-items: center;
+          margin-bottom: 10px;
+        }
+      </style>
+      
+      <script>
+        import api from '../Common/api/index'
+        import router from '@system.router'
+        import prompt  from '@system.prompt'
+        import stronge from '@system.storage'
+        let memList = []
+        export default {
+          data: {
+            id:'',
+            contentid:'',
+            allpage:'',
+            npage:'',
+            images:[],
+            size:5,
+            isLoadingData:false
+          },
+          onInit() {
+            this.onSetTitle('读书页');
+            var that = this
+            stronge.get({
+              key: 'allpage',
+              success: function (data) {
+                that.allpage = data
+              },
+              fail: function (data, code) {
+                console.log(`handling fail, code = ${code}`)
+              }
+            });
+            that.isLoadingData = true
+            that.getReads(that.id,that.contentid)
+            
+          },
+          /**
+           * 当用户点击菜单按钮时触发，调用app中定义的方法showMenu
+           * 注意：使用加载器测试`创建桌面快捷方式`功能时，请先在`系统设置`中打开`应用加载器`的`桌面快捷方式`权限
+           */
+          goCatelist() {
+            router.push({
+              uri:'/Book',
+                params:{
+                    id:this.id,
+                }
+            })
+          },
+          goIndex() {
+            router.push({
+              uri:'/'
+            })
+          },
+          nextPage() {
+            this.npage = parseInt(this.contentid) + 1
+            if(this.npage <= parseInt(this.allpage)){
+              router.push({
+                uri:'/Read',
+                  params:{
+                      id:this.id,
+                      contentid:this.npage,
+                      // allpage:this.allpage
+                  }
+              })
+            }else{
+              prompt.showDialog({
+                title: '提示',
+                message: '该章节暂不可看，搜索《真人漫画》，下载app，看未解锁部分',
+                buttons: [
+                  {
+                    text: '确定',
+                    color: '#33dd44'
+                  }
+                ],
+                success: function (data) {
+                  console.log('handling callback')
+                },
+                cancel: function () {
+                  console.log('handling cancel')
+                },
+                fail: function (data, code) {
+                  console.log(`handling fail, code = ${code}`)
+                }
+              })
+            }
+            
+          },
+          async getReads (id,contentid) {
+            try{
+              let data = await api.getRead(id,contentid);
+              this.isLoadingData = false
+              this.onSetTitle(data.title)
+              // this.images = data.content;
+              memList = memList.concat(data.content)
+              if(memList){
+                this._renderList ()
+              }
+            }catch(e){
+              console.log('错了')
+            }
+          },
+          lazyload(){
+
+          },
+          // loadAndRender (doRender = true) {
+          //   this.isLoadingData = true
+          //   // 重新请求数据并根据模式判断是否需要渲染列表
+          //   that.getReads(this.id,this.contentid)
+          //   if (doRender) {
+          //         this._renderList()
+          //   }
+          // },
+          _renderList () {
+      // 渲染列表
+            if (memList.length > 0) {
+              const list = memList.splice(0, this.size)
+              this.images = this.images.concat(list)
+            }
+          },
+          /**
+           * 滑动到底部时加载更多
+           */
+          renderMoreListItem () {
+            if (!this.isLoadingData) {
+              this._renderList()
+            }
+          },
+          onMenuPress() {
+            this.$app.$def.showMenu()
+          },
+          onSetTitle(txt) {
+            this.$page.setTitleBar({text:txt, menu: true})
+          }
+        }
+      </script>
+      

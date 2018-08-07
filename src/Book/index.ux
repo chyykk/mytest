@@ -1,0 +1,162 @@
+<template>
+    <div class="book-content">
+        <div class="book-top">
+            <image src='{{booklist.imgurl}}' class="book-cover"></image>
+            <text class="book-des">{{booklist.title}}</text>
+        </div>
+        <text class="list-all">
+            共{{booklength}}话
+        </text>
+        <list class="book-detail-list">
+            <block for='{{booklist.content}}'>
+                <list-item type='booklist' class="book-list-wrap" onclick="{{goRead($item.lock,booklist.bookid,$item.contentid)}}">
+                    <image src='{{$item.imgurl}}' class="book-img"></image>
+                    <div class="book-list">
+                        <div class="book-list-top">
+                            <text>{{$item.title}}</text>
+                            <image src='{{$item.lockimg}}'></image>
+                        </div>
+                        <text class="time">{{$item.intime}}</text>
+                    </div>
+                </list-item>
+            </block>
+        </list>
+    </div>
+</template>
+<script>
+    import router from '@system.router'
+    import fetch from "@system.fetch"
+    import stronge from '@system.storage'
+    import api from '../Common/api/index'
+    export default {
+        data:{
+            id:'',
+            booklist:[],
+            booklength:0
+        },
+        onInit () {
+           this.getBookitem(this.id) 
+           this.onSetTitle('读书页'); 
+        },
+        async getBookitem (bookid) {
+            try{
+                let data = await api.getBookitem(bookid);
+                this.differLock(data.content);//处理data数据
+                this.booklist = data;
+                this.getbooklen(this.booklist.content);
+                this.onSetTitle(this.booklist.bookname);
+            }catch(e){
+                console.log(e);
+            }
+        },
+        
+        getbooklen(content) {
+            this.booklength = content.length
+            let allpage = 0
+           content.forEach(value => {
+               if(!value.lock){
+                   allpage += 1
+               }
+           });
+           stronge.set({
+                key: 'allpage',
+                value: allpage,
+                success: function (data) {
+                    console.log('handling success')
+                },
+                fail: function (data, code) {
+                    console.log(`handling fail, code = ${code}`)
+                }
+                })
+        },
+        goRead (lock,bookid,contentid) {
+            //跳转到读书页面
+            if(lock){
+                this.$app.$def.alertLock()
+            }else{
+                router.push({
+                uri:'/Read',
+                params:{
+                    id:bookid,
+                    contentid:contentid
+                }
+            })
+            }
+            
+        },
+        differLock(booklist) {
+            let img = "../Common/img/lock.png";
+            booklist.forEach(value=>{
+                if(value.lock){
+                    value.lockimg = img
+                }else{
+                    value.lockimg = null
+                }
+            })
+        },
+        onSetTitle(txt) {
+            this.$page.setTitleBar({text:txt, menu: true})
+        }
+    }
+</script>
+<style>
+    .book-content{
+        flex-direction: column;
+    }
+    .book-top{
+        flex-direction: row;
+        background-color: #5D9EA0;
+        justify-content:space-between;
+        align-content:center;
+        align-items: center;
+    }
+    .book-cover{
+        margin: 30px;
+        width: 200px;
+    }
+    .book-des{
+        lines:5;
+        text-overflow:ellipsis;
+        width: 450px;
+        margin-right: 30px;
+        color: #fefefe;
+    }
+    .list-all{
+        margin:20px;
+    }
+    /* 列表所有的样式 */
+    .book-detail-list{
+        flex-direction: column;
+    }
+    .book-list-wrap{
+        flex-direction: row;
+        margin:22px 16px;
+    }
+    .book-img{
+        flex-direction: row;
+        width: 200px;
+        height: 120px;
+    }
+    .book-list{
+        flex-direction: column;
+        width: 500px;
+        margin-left: 30px;
+    }
+    .book-list-top{
+        flex-direction: row;
+        
+    }
+    .book-list-top image{
+        width: 36px;
+        height: 36px;
+        margin-left: 10px;
+    }
+    .book-list-top text{
+        font-size: 32px;
+        margin-bottom: 50px;
+    }
+    .time{
+        flex-direction: column;
+        font-size: 24px;
+    }
+</style>

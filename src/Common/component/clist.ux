@@ -1,0 +1,126 @@
+<template>
+    <div class="book-list-content">
+        <block for='booklists'>
+            <div class="{{booklistwidth}}" id="booklist" onclick="{{goBook($item.bookid)}}">
+                <image class="bookimg" src = '{{$item.imgurl}}'></image>
+                <text class="bookname">{{$item.bookname}}</text>
+                <text class="secname">{{$item.title}}</text>
+            </div>
+        </block>
+    </div>
+</template>
+<script>
+    import api from '../api/index.js';
+    import router from '@system.router';
+    let memList = [];
+    export default {
+        data:{
+            booklists:[],
+            allpage:'',
+            toplist:[],
+            booklistwidth:'book-list-li2'
+        },
+        props:['bookinfo'],
+        onInit () {
+            switch (this.bookinfo){
+                case 1:
+                    this.getBooklists();
+                    break;
+                case 2:
+                    this.getFreebook();
+                    break;
+                default:
+                    this.getRecentbook();
+                    break;
+            }
+                
+        },
+        goBook (id) {
+            router.push({
+                uri: '/Book',
+                params: { id }
+            })
+        },
+        async getToplist(id) {
+            try{
+                let data = await api.getToplist(id);
+                this.toplist = data.data;
+                console.log(this.toplist);
+            }catch(e){
+                console.log(e)
+            }
+        },
+        async getBooklists() {
+            try{
+                let data = await api.getBooklist();
+                this.booklists = data;
+            }catch(e){
+                console.log("1")
+            }
+        },
+        async getFreebook() {
+            try {
+                let data =await api.getFreebook();
+                setTimeout(function () {
+                    this.booklists = data
+                }.bind(this), 1000)
+            }catch(e){
+                console.log(e)
+            }
+        },
+        async getRecentbook() {
+            try {
+                let data = await api.getRecentbook();
+                var that = this
+                setTimeout(function () {
+                    that.booklists = data
+                    that.booklistwidth = 'book-list-li3'
+                }, 500)
+                
+            }catch(e){
+                console.log(e)
+            }
+        }
+    }
+</script>
+<style>
+    .book-list-content{
+        margin: 0 10px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content:space-between;
+        align-content:center;
+        align-items: center;
+    }
+     .book-list-li2{
+        flex-direction: column;
+        width: 360px;
+        margin-bottom: 10px;
+     } 
+     .book-list-li3{
+        flex-direction: column;
+        width: 236px;
+        margin-bottom: 10px;
+     }
+     .bookimg{
+        /* flex-direction: column; */
+         width: 360px;
+         height: 300px;
+     }
+     .bookname{
+        /* flex-direction: column; */
+        lines:1;
+        text-overflow: ellipsis;
+        line-height: 50px;
+        /* text-align:center; */
+     }   
+     .secname{
+         /* flex-direction: column; */
+        lines:1;
+        text-overflow: ellipsis;
+        color: #ccc;
+        /* text-align:center; */
+        font-size: 24px;
+        margin-bottom: 15px;
+     } 
+</style>
